@@ -75,6 +75,219 @@ const App = () => {
       .replace(/: (true|false)/g, ': <span class="text-[#ff6b35]">$1</span>');
   };
 
+  const formatLabel = (key) =>
+    key
+      .replace(/_/g, ' ')
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .replace(/\b\w/g, char => char.toUpperCase());
+
+  const formatResponseValue = (value) => {
+    if (value === null || value === undefined || value === '') return 'N/A';
+    if (Array.isArray(value)) return value.join(', ') || 'N/A';
+    if (typeof value === 'object') return JSON.stringify(value, null, 2);
+    return String(value);
+  };
+
+  const renderInboundResponse = () => {
+    if (!ibResponse) return null;
+
+    if (typeof ibResponse === 'string') {
+      return (
+        <div className="bg-[#111118] border border-[#2a2a3a] rounded-xl p-5">
+          <div className="text-sm font-semibold text-[#e8e8f0]">Inbound Response</div>
+          <p className="mt-3 text-[13px] leading-relaxed text-[#c7c9d3]">{ibResponse}</p>
+        </div>
+      );
+    }
+
+    const preferredOrder = [
+      'item_name',
+      'quantity',
+      'category',
+      'price',
+      'reorder_point',
+      'supplier_email',
+      'current_stock',
+      'new_stock',
+      'stock_level',
+      'total_value'
+    ];
+
+    const entries = Object.entries(ibResponse);
+    const primaryEntries = preferredOrder
+      .filter(key => key in ibResponse)
+      .map(key => [key, ibResponse[key]]);
+    const usedKeys = new Set([
+      'status',
+      'message',
+      ...primaryEntries.map(([key]) => key)
+    ]);
+    const extraEntries = entries.filter(([key]) => !usedKeys.has(key));
+
+    return (
+      <div className="bg-[#111118] border border-[#2a2a3a] rounded-xl p-5 space-y-5">
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div>
+            <div className="font-mono text-[11px] tracking-[0.15em] uppercase text-[#666680]" style={{ fontFamily: "'Space Mono', monospace" }}>
+              Inbound Response
+            </div>
+            <div className="mt-2 text-base font-semibold text-[#e8e8f0]">
+              {ibResponse.message || 'Inventory update received'}
+            </div>
+          </div>
+          {ibResponse.status && (
+            <Badge
+              type={
+                ibResponse.status === 'success'
+                  ? 'success'
+                  : ibResponse.status === 'warning'
+                    ? 'warn'
+                    : ibResponse.status === 'error'
+                      ? 'danger'
+                      : 'info'
+              }
+            >
+              {String(ibResponse.status).toUpperCase()}
+            </Badge>
+          )}
+        </div>
+
+        {primaryEntries.length > 0 && (
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {primaryEntries.map(([key, value]) => (
+              <div key={key} className="rounded-xl border border-[#2a2a3a] bg-[#1a1a24] px-4 py-3">
+                <div className="font-mono text-[10px] uppercase tracking-[0.15em] text-[#666680]" style={{ fontFamily: "'Space Mono', monospace" }}>
+                  {formatLabel(key)}
+                </div>
+                <div className="mt-1 text-sm font-semibold text-[#e8e8f0] break-words">
+                  {formatResponseValue(value)}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {extraEntries.length > 0 && (
+          <div className="rounded-xl border border-[#2a2a3a] bg-[#1a1a24] p-4">
+            <div className="font-mono text-[10px] uppercase tracking-[0.15em] text-[#666680]" style={{ fontFamily: "'Space Mono', monospace" }}>
+              Additional Details
+            </div>
+            <div className="mt-3 grid gap-3">
+              {extraEntries.map(([key, value]) => (
+                <div key={key} className="border-b border-[#2a2a3a] pb-3 last:border-b-0 last:pb-0">
+                  <div className="text-[12px] font-semibold text-[#4d9fff]">{formatLabel(key)}</div>
+                  <div className="mt-1 text-[13px] whitespace-pre-wrap break-words text-[#c7c9d3]">
+                    {formatResponseValue(value)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderOutboundResponse = () => {
+    if (!obResponse) return null;
+
+    if (typeof obResponse === 'string') {
+      return (
+        <div className="bg-[#111118] border border-[#2a2a3a] rounded-xl p-5">
+          <div className="text-sm font-semibold text-[#e8e8f0]">Outbound Response</div>
+          <p className="mt-3 text-[13px] leading-relaxed text-[#c7c9d3]">{obResponse}</p>
+        </div>
+      );
+    }
+
+    const preferredOrder = [
+      'item_name',
+      'quantity',
+      'requested_quantity',
+      'withdrawn_quantity',
+      'stock_level',
+      'remaining_stock',
+      'reorder_point',
+      'shortage',
+      'category',
+      'supplier_email'
+    ];
+
+    const entries = Object.entries(obResponse);
+    const primaryEntries = preferredOrder
+      .filter(key => key in obResponse)
+      .map(key => [key, obResponse[key]]);
+    const usedKeys = new Set([
+      'status',
+      'message',
+      ...primaryEntries.map(([key]) => key)
+    ]);
+    const extraEntries = entries.filter(([key]) => !usedKeys.has(key));
+
+    return (
+      <div className="bg-[#111118] border border-[#2a2a3a] rounded-xl p-5 space-y-5">
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div>
+            <div className="font-mono text-[11px] tracking-[0.15em] uppercase text-[#666680]" style={{ fontFamily: "'Space Mono', monospace" }}>
+              Outbound Response
+            </div>
+            <div className="mt-2 text-base font-semibold text-[#e8e8f0]">
+              {obResponse.message || 'Stock withdrawal processed'}
+            </div>
+          </div>
+          {obResponse.status && (
+            <Badge
+              type={
+                obResponse.status === 'success'
+                  ? 'success'
+                  : obResponse.status === 'warning'
+                    ? 'warn'
+                    : obResponse.status === 'error'
+                      ? 'danger'
+                      : 'info'
+              }
+            >
+              {String(obResponse.status).toUpperCase()}
+            </Badge>
+          )}
+        </div>
+
+        {primaryEntries.length > 0 && (
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {primaryEntries.map(([key, value]) => (
+              <div key={key} className="rounded-xl border border-[#2a2a3a] bg-[#1a1a24] px-4 py-3">
+                <div className="font-mono text-[10px] uppercase tracking-[0.15em] text-[#666680]" style={{ fontFamily: "'Space Mono', monospace" }}>
+                  {formatLabel(key)}
+                </div>
+                <div className="mt-1 text-sm font-semibold text-[#e8e8f0] break-words">
+                  {formatResponseValue(value)}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {extraEntries.length > 0 && (
+          <div className="rounded-xl border border-[#2a2a3a] bg-[#1a1a24] p-4">
+            <div className="font-mono text-[10px] uppercase tracking-[0.15em] text-[#666680]" style={{ fontFamily: "'Space Mono', monospace" }}>
+              Additional Details
+            </div>
+            <div className="mt-3 grid gap-3">
+              {extraEntries.map(([key, value]) => (
+                <div key={key} className="border-b border-[#2a2a3a] pb-3 last:border-b-0 last:pb-0">
+                  <div className="text-[12px] font-semibold text-[#4d9fff]">{formatLabel(key)}</div>
+                  <div className="mt-1 text-[13px] whitespace-pre-wrap break-words text-[#c7c9d3]">
+                    {formatResponseValue(value)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   // ── HEALTH CHECK ──
   const runHealthCheck = async () => {
     setLoading(prev => ({ ...prev, hc: true }));
@@ -445,12 +658,7 @@ const App = () => {
                 </div>
               </div>
 
-              {ibResponse && (
-                <div className="bg-[#1a1a24] border border-[#2a2a3a] rounded-xl p-4 font-mono text-xs leading-relaxed text-[#666680]" 
-                  style={{ fontFamily: "'Space Mono', monospace" }}
-                  dangerouslySetInnerHTML={{ __html: prettyJSON(ibResponse) }}
-                />
-              )}
+              {ibResponse && renderInboundResponse()}
             </div>
           )}
 
@@ -502,12 +710,7 @@ const App = () => {
                 </div>
               </div>
 
-              {obResponse && (
-                <div className="bg-[#1a1a24] border border-[#2a2a3a] rounded-xl p-4 font-mono text-xs leading-relaxed text-[#666680]" 
-                  style={{ fontFamily: "'Space Mono', monospace" }}
-                  dangerouslySetInnerHTML={{ __html: prettyJSON(obResponse) }}
-                />
-              )}
+              {obResponse && renderOutboundResponse()}
 
               <div className="bg-[#111118] border border-[#2a2a3a] rounded-xl p-6">
                 <div className="font-mono text-[11px] tracking-[0.15em] uppercase text-[#666680] mb-4" style={{ fontFamily: "'Space Mono', monospace" }}>Quick Test — Known Items</div>
