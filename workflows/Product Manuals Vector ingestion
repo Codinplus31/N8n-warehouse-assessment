@@ -1,0 +1,203 @@
+{
+  "name": "Product Manuals Vector Ingestion",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "925eb37b-b25b-4483-8cb0-871df2c36a38",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        3056,
+        -32
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "product_manuals",
+        "returnAll": true
+      },
+      "id": "11f011aa-91b2-43d8-bf25-ad0ff03bf281",
+      "name": "Get All Product Manuals",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        3280,
+        -32
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "keYBtGy7mbulbjMu",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": "product_manuals",
+        "options": {}
+      },
+      "id": "cd991a67-34b7-4356-899f-972e916e6fed",
+      "name": "Supabase Vector Store",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1,
+      "position": [
+        3728,
+        -32
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "keYBtGy7mbulbjMu",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "product_name",
+                "value": "={{ $json.product_name }}"
+              },
+              {
+                "name": "category",
+                "value": "={{ $json.category }}"
+              },
+              {
+                "name": "version",
+                "value": "={{ $json.version }}"
+              },
+              {
+                "name": "last_updated",
+                "value": "={{ $json.last_updated }}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "ea350799-2127-4ffa-8657-e263702d601a",
+      "name": "Default Data Loader",
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1,
+      "position": [
+        3728,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "chunkSize": 500,
+        "chunkOverlap": 50,
+        "options": {}
+      },
+      "id": "6d63758d-69ac-466e-a995-63b19157267e",
+      "name": "Recursive Character Text Splitter",
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        3936,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-embedding-2-preview"
+      },
+      "id": "a2872f35-db9c-49ce-a299-63d8db742ac8",
+      "name": "Embeddings Google Gemini",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        3936,
+        80
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "CLWhxw92xu6fmpqB",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get All Product Manuals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get All Product Manuals": {
+      "main": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recursive Character Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "28937817-aaee-4468-9b74-5d7e7a59a58c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d0f23b741f41ebfe7b149c1a69b9377e5563a85ec536c21ae23bfcf8d2fe1890"
+  },
+  "id": "r1u7JPiTELElFBnW",
+  "tags": [
+    {
+      "updatedAt": "2026-04-03T07:19:31.950Z",
+      "createdAt": "2026-04-03T07:19:31.950Z",
+      "id": "N6pdRTbdCTTjjjaJ",
+      "name": "Warehouse"
+    }
+  ]
+}
