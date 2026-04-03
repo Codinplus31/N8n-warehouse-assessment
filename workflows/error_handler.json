@@ -1,0 +1,139 @@
+{
+  "name": "_Error Handler (Supabase + Email)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "15cd930e-67d4-4f2f-af4b-8f5433f4a59a",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        -720,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const error = $input.first().json;\nconst execution = error.execution || {};\nconst workflow = error.workflow || {};\n\n// content: searchable text for embedding\nconst content = `Workflow: ${workflow.name || 'Unknown'}\\nError: ${execution.error?.message || 'Unknown error'}\\nNode: ${execution.lastNodeExecuted || 'Unknown'}`;\n\n// metadata: structured JSONB data\nconst metadata = {\n  workflow_id: workflow.id,\n  workflow_name: workflow.name,\n  error_message: execution.error?.message || '',\n  error_stack: execution.error?.stack || '',\n  execution_id: execution.id,\n  failed_node: execution.lastNodeExecuted,\n  execution_mode: execution.mode,\n  retry_of: execution.retryOf || null\n};\n\nreturn [{\n  json: {\n    content: content,\n    metadata: metadata\n  }\n}];"
+      },
+      "id": "ac847558-b2a5-4b53-aa23-becc61c58163",
+      "name": "Format for error_log",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -464,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "error_logs",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "workflow_name",
+              "fieldValue": "={{ $json.metadata.workflow_name }}"
+            },
+            {
+              "fieldId": "error_message",
+              "fieldValue": "={{ $json.metadata.error_message }}"
+            },
+            {
+              "fieldId": "node_name",
+              "fieldValue": "={{ $json.metadata.failed_node }}"
+            },
+            {
+              "fieldId": "execution_id",
+              "fieldValue": "={{ $json.metadata.execution_id }}"
+            }
+          ]
+        }
+      },
+      "id": "1b066b42-90e4-40f9-8599-76e776322124",
+      "name": "Save Error to error_log",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -224,
+        112
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "keYBtGy7mbulbjMu",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "codinplus31@gmail.com",
+        "subject": "=⚠️ n8n Error: {{ $('Error Trigger').item.json.workflow.name }}",
+        "message": "=<div style=\"font-family: Arial, sans-serif; max-width: 620px; padding: 28px; border: 1px solid #e5e5e5; border-radius: 10px;\">\n\n  <h2 style=\"margin: 0 0 6px; color: #A32D2D; font-size: 20px;\">⚠️ Workflow Failed</h2>\n  <p style=\"margin: 0 0 24px; font-size: 13px; color: #999;\">This error has been saved to your <b>error_log</b> table.</p>\n\n  <table style=\"width: 100%; border-collapse: collapse; font-size: 14px;\">\n    <tr style=\"border-bottom: 1px solid #f0f0f0;\">\n      <td style=\"padding: 10px 16px 10px 0; color: #888; width: 150px;\">Workflow</td>\n      <td style=\"padding: 10px 0; font-weight: bold;\">{{ $('Error Trigger').item.json.workflow.name }}</td>\n    </tr>\n    <tr style=\"border-bottom: 1px solid #f0f0f0;\">\n      <td style=\"padding: 10px 16px 10px 0; color: #888;\">Workflow ID</td>\n      <td style=\"padding: 10px 0; font-family: monospace; font-size: 12px;\">{{ $('Error Trigger').item.json.workflow.id }}</td>\n    </tr>\n    <tr style=\"border-bottom: 1px solid #f0f0f0;\">\n      <td style=\"padding: 10px 16px 10px 0; color: #888;\">Failed Node</td>\n      <td style=\"padding: 10px 0;\">{{ $('Error Trigger').item.json.execution.lastNodeExecuted }}</td>\n    </tr>\n    <tr style=\"border-bottom: 1px solid #f0f0f0;\">\n      <td style=\"padding: 10px 16px 10px 0; color: #888;\">Error Message</td>\n      <td style=\"padding: 10px 0; color: #A32D2D; font-weight: 500;\">{{ $('Error Trigger').item.json.execution.error.message }}</td>\n    </tr>\n    <tr style=\"border-bottom: 1px solid #f0f0f0;\">\n      <td style=\"padding: 10px 16px 10px 0; color: #888;\">Execution ID</td>\n      <td style=\"padding: 10px 0; font-family: monospace; font-size: 12px;\">{{ $('Error Trigger').item.json.execution.id }}</td>\n    </tr>\n    <tr style=\"border-bottom: 1px solid #f0f0f0;\">\n      <td style=\"padding: 10px 16px 10px 0; color: #888;\">Mode</td>\n      <td style=\"padding: 10px 0;\">{{ $('Error Trigger').item.json.execution.mode }}</td>\n    </tr>\n    <tr>\n      <td style=\"padding: 10px 16px 10px 0; color: #888;\">Time</td>\n      <td style=\"padding: 10px 0;\">{{ $now.toFormat('yyyy-MM-dd HH:mm:ss') }} UTC</td>\n    </tr>\n  </table>\n\n  <div style=\"margin-top: 24px; padding: 14px; background: #fff8f8; border-left: 3px solid #A32D2D; border-radius: 4px;\">\n    <p style=\"margin: 0 0 8px; font-size: 13px; font-weight: bold; color: #A32D2D;\">Stack Trace</p>\n    <pre style=\"margin: 0; font-size: 11px; color: #555; white-space: pre-wrap; word-break: break-word;\">{{ $('Error Trigger').item.json.execution.error.stack }}</pre>\n  </div>\n\n  <div style=\"margin-top: 20px; padding: 12px 14px; background: #f0f7ff; border-left: 3px solid #185FA5; border-radius: 4px; font-size: 13px; color: #185FA5;\">\n    ✅ Saved to <b>error_log</b> table (content + metadata + embedding).\n  </div>\n\n  <p style=\"margin: 20px 0 0; font-size: 12px; color: #bbb;\">Sent automatically by your n8n _Error Handler workflow.</p>\n\n</div>",
+        "options": {}
+      },
+      "id": "69c6cacf-bdfb-4874-86b5-24333ddaa021",
+      "name": "Send Error Email1",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        16,
+        112
+      ],
+      "webhookId": "3416e9d0-20a7-4e0f-823e-54912358fbef",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "NHvM6963o62CXkQU",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Format for error_log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format for error_log": {
+      "main": [
+        [
+          {
+            "node": "Save Error to error_log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Error to error_log": {
+      "main": [
+        [
+          {
+            "node": "Send Error Email1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "3c1814a4-4695-48e9-8a79-8b152aeb14c4",
+  "meta": {
+    "instanceId": "d0f23b741f41ebfe7b149c1a69b9377e5563a85ec536c21ae23bfcf8d2fe1890"
+  },
+  "id": "NevCXqdXsBI9mv0L",
+  "tags": []
+}
